@@ -76,21 +76,40 @@ const addListing = async (req, res) => {
 
 };
 
-//Get Listings
-
 
 const getListings = async (req, res) => {
     try {
-        const response = await listingSchema.find()
-            .then((data) => {
-                const listings = data
-                res.status(200).json({ message: 'Listings fetch succesfully', data: listings })
-            })
+        const listings = await listingSchema.aggregate([
+            {
+                $addFields: {
+                    seller: { $toObjectId: "$seller" }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'sellers',
+                    localField: 'seller',
+                    foreignField: '_id',
+                    as: 'sellerDetails'
+                }
+            },
+            {
+                $unwind: '$sellerDetails'
+            }
+        ]);
+
+        res.status(200).json({
+            message: 'Listings fetch successfully',
+            data: listings
+        });
     } catch (error) {
-        console.error(error)
-        res.status(404).json({ message: `There is an error fetching the listings data ${error}` })
+        console.error(error);
+        res.status(404).json({
+            message: `There is an error fetching the listings data: ${error}`
+        });
     }
 };
+
 
 
 // Add Seller
@@ -120,7 +139,6 @@ const addSeller = async (req, res) => {
     }
 }
 
-
 const getSellers = async (req, res) => {
     try {
         await sellerSchema.find()
@@ -137,4 +155,21 @@ const getSellers = async (req, res) => {
     }
 }
 
-module.exports = { addListing, upload, addSeller, getSellers, getListings };
+
+const deleteListing = async (req, res) => {
+    try {
+        await sellerSchema.findByIdAndDelete({ _id: req.params.id })
+            .then((data) => {
+                console.log(`Seller Deleted`)
+                res.status(200).json({ data: data, message: 'Seller Deleted Sucesfully' })
+            })
+            .catch((err) => {
+                console.log(err)
+                res.status(401).json({ message: 'Something Went Wrong', error: err })
+            })
+    } catch (error) {
+        console.log(error)
+        res.status(401).json({ message: 'Something Went Wrong', error: error })
+    }
+}
+module.exports = { addListing, upload, addSeller, getSellers, getListings, deleteListing };

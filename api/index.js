@@ -10,7 +10,6 @@ const cookieParser = require('cookie-parser');
 const adminRoutes = require('../routes/admin');
 require('dotenv').config();
 
-// mongoose.connect(process.env.DATABASE_URI)
 mongoose.connect('mongodb+srv://sualehfarooq65:sualeh123@cluster0.ep9momm.mongodb.net/unify?retryWrites=true&w=majority&appName=Cluster0')
     .then(() => {
         console.log(`Database Connected`);
@@ -21,10 +20,10 @@ mongoose.connect('mongodb+srv://sualehfarooq65:sualeh123@cluster0.ep9momm.mongod
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/uploads/'); // Specify the upload directory
+        cb(null, 'public/uploads/');
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + path.extname(file.originalname)); // Append the extension to the filename
+        cb(null, Date.now() + path.extname(file.originalname));
     }
 });
 
@@ -34,7 +33,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(cookieParser());
-app.use('/api/images', express.static('public/uploads'));
+// app.use('/api/images', express.static('public/uploads'));
+// app.use('/files', express.static(path.join(__dirname, 'public/uploads')));
+// app.use('/files', express.static(path.join(__dirname, 'public/uploads')))
+// app.use('*/files',express.static('public/uploads'));
+
+app.use('/files', express.static(path.join(__dirname, '../public/uploads')))
+
+
 
 app.get('/', (req, res) => {
     res.send(`<p>Server is running</p>`);
@@ -44,7 +50,6 @@ app.use('/api/images', imageRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Middleware function handler on every request API
 app.use((req, res, next) => {
     console.log(`Method: ${req.method}`);
     console.log(`Path: ${req.path}`);
@@ -52,5 +57,4 @@ app.use((req, res, next) => {
     next();
 });
 
-// Export the app instance for Vercel to use
 module.exports = app;
