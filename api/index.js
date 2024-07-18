@@ -52,4 +52,4 @@ app.use((req, res, next) => {
 });
 
 // Export the app instance for Vercel to use
-module.exports = {app , upload}
+module.exports = app;
