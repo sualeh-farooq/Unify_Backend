@@ -10,7 +10,8 @@ const cookieParser = require('cookie-parser');
 const adminRoutes = require('../routes/admin');
 require('dotenv').config();
 
-mongoose.connect(process.env.DATABASE_URI)
+// mongoose.connect(process.env.DATABASE_URI)
+mongoose.connect('mongodb+srv://sualehfarooq65:sualeh123@cluster0.ep9momm.mongodb.net/unify?retryWrites=true&w=majority&appName=Cluster0')
     .then(() => {
         console.log(`Database Connected`);
     })
