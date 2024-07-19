@@ -77,6 +77,12 @@ const addListing = async (req, res) => {
 };
 
 
+const addBuyer = async (req, res) =>{
+    console.log('hit')
+    return res.status(200).json({message: 'Add Buyer API Hit'})
+}
+
+
 const getListings = async (req, res) => {
     try {
         const listings = await listingSchema.aggregate([
@@ -172,4 +178,4 @@ const deleteListing = async (req, res) => {
         res.status(401).json({ message: 'Something Went Wrong', error: error })
     }
 }
-module.exports = { addListing, upload, addSeller, getSellers, getListings, deleteListing };
+module.exports = { addListing, upload, addSeller, getSellers, getListings, deleteListing  , addBuyer};
