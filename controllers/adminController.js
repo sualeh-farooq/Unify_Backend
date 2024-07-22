@@ -3,15 +3,13 @@ const path = require('path');
 const hash = require('bcrypt')
 const IncomingForm = require('formidable')
 const mv = require('mv')
-const fs = require('fs')
 const listingSchema = require('../models/listing');
 const sellerSchema = require('../models/sellers')
 
 
-
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, '/tmp'); // Use /tmp directory
+        cb(null, 'tmp'); 
     },
     filename: function (req, file, cb) {
         const userId = req.cookies.userId || 'anonymous';
@@ -19,6 +17,7 @@ const storage = multer.diskStorage({
         cb(null, `${userId}-${uniqueSuffix}`);
     }
 });
+
 
 const upload = multer({ storage: storage });
 
@@ -47,10 +46,11 @@ const addListing = async (req, res) => {
         im
     } = req.files;
 
+    // Move files from /tmp to your desired directory if needed
     const moveFile = (file, targetDir) => {
         return new Promise((resolve, reject) => {
-            const sourcePath = path.join('/tmp', file.filename);
-            const destPath = path.join(targetDir, file.filename);
+            const sourcePath = path.join('tmp', file.filename);
+            const destPath = path.join(process.cwd(), targetDir, file.filename);
             fs.copyFile(sourcePath, destPath, (err) => {
                 if (err) return reject(err);
                 fs.unlink(sourcePath, (unlinkErr) => {
@@ -100,7 +100,6 @@ const addListing = async (req, res) => {
         return res.status(404).json({ message: `Error Occurred ==> ${err}` });
     }
 };
-
 
 const addBuyer = async (req, res) =>{
     console.log('hit')
