@@ -12,6 +12,8 @@ adminRoutes.post('/addListing', upload.fields([
     { name: 'im', maxCount: 1 }
 ]), addListing);
 
+
+
 adminRoutes.post('/addSeller' , addSeller )
 adminRoutes.get('/getSeller' , getSellers  )
 adminRoutes.get('/getlistings' , getListings)

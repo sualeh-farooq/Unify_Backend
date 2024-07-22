@@ -3,18 +3,20 @@ const path = require('path');
 const hash = require('bcrypt')
 const IncomingForm = require('formidable')
 const mv = require('mv')
+const fs = require('fs')
 const listingSchema = require('../models/listing');
 const sellerSchema = require('../models/sellers')
 
 
-// Multer for Admin Media Storage
+
+// Configure Multer to use /tmp directory for temporary storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/uploads/'); // Specify the upload directory
+        cb(null, 'tmp'); // Use /tmp directory
     },
     filename: function (req, file, cb) {
         const userId = req.cookies.userId || 'anonymous';
-        const uniqueSuffix = Date.now() + path.extname(file.originalname)
+        const uniqueSuffix = Date.now() + path.extname(file.originalname);
         cb(null, `${userId}-${uniqueSuffix}`);
     }
 });
@@ -37,43 +39,60 @@ const addListing = async (req, res) => {
         adTitle,
         status,
         webAd
-    } = req.body
+    } = req.body;
 
     const {
         coverPhoto,
-        listingPhoto, agencyAgreement, im
-    } = req.files
-    const addListing = new listingSchema({
-        dealName: deal_name,
-        askingPrice: asking_price,
-        commision: commision,
-        marketingFunds: funds,
-        revenue: revenue,
-        ebitda: ebitda,
-        seller: seller,
-        location: location,
-        industry: industry,
-        broker: broker,
-        adTitle: adTitle,
-        webAd: webAd,
-        status: status,
-        coverPhoto: coverPhoto !== undefined ? coverPhoto[0].filename : '',
-        agencyAgreement: agencyAgreement !== undefined ? agencyAgreement[0].filename : '',
-        im: im !== undefined ? im[0].filename : '',
-        listingPhoto: listingPhoto !== undefined ? listingPhoto[0].filename : ''
-    })
+        listingPhoto,
+        agencyAgreement,
+        im
+    } = req.files;
+
+    // Move files from /tmp to your desired directory if needed
+    const moveFile = (file, targetPath) => {
+        return new Promise((resolve, reject) => {
+            const sourcePath = path.join('tmp', file.filename);
+            const destPath = path.join('public/uploads/', file.filename);
+            fs.rename(sourcePath, destPath, (err) => {
+                if (err) return reject(err);
+                resolve(destPath);
+            });
+        });
+    };
+
     try {
-        addListing.save()
-            .then((data) => {
-                const savedListing = data
-                return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' });
-            })
+        // Move files if they exist
+        if (coverPhoto) await moveFile(coverPhoto[0]);
+        if (listingPhoto) await moveFile(listingPhoto[0]);
+        if (agencyAgreement) await moveFile(agencyAgreement[0]);
+        if (im) await moveFile(im[0]);
+
+        const newListing = new listingSchema({
+            dealName: deal_name,
+            askingPrice: asking_price,
+            commision: commision,
+            marketingFunds: funds,
+            revenue: revenue,
+            ebitda: ebitda,
+            seller: seller,
+            location: location,
+            industry: industry,
+            broker: broker,
+            adTitle: adTitle,
+            webAd: webAd,
+            status: status,
+            coverPhoto: coverPhoto !== undefined ? coverPhoto[0].filename : '',
+            agencyAgreement: agencyAgreement !== undefined ? agencyAgreement[0].filename : '',
+            im: im !== undefined ? im[0].filename : '',
+            listingPhoto: listingPhoto !== undefined ? listingPhoto[0].filename : ''
+        });
+
+        const savedListing = await newListing.save();
+        return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' });
     } catch (err) {
-        console.log(`Error ==> ${err}`)
-        return res.status(404).json({ message: `Error Occured ==> ${err} ` })
+        console.log(`Error ==> ${err}`);
+        return res.status(404).json({ message: `Error Occurred ==> ${err}` });
     }
-
-
 };
 
 
