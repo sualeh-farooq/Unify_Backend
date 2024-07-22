@@ -11,7 +11,7 @@ const sellerSchema = require('../models/sellers')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, '/tmp'); 
+        cb(null, '/tmp'); // Use /tmp directory
     },
     filename: function (req, file, cb) {
         const userId = req.cookies.userId || 'anonymous';
@@ -22,6 +22,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Add Listing
 const addListing = async (req, res) => {
     const {
         deal_name,
@@ -46,22 +47,31 @@ const addListing = async (req, res) => {
         im
     } = req.files;
 
-    const moveFile = (file, targetPath) => {
+    const moveFile = (file, targetDir) => {
         return new Promise((resolve, reject) => {
             const sourcePath = path.join('/tmp', file.filename);
-            const destPath = path.join('public/uploads/', file.filename);
-            fs.rename(sourcePath, destPath, (err) => {
+            const destPath = path.join(targetDir, file.filename);
+            fs.copyFile(sourcePath, destPath, (err) => {
                 if (err) return reject(err);
-                resolve(destPath);
+                fs.unlink(sourcePath, (unlinkErr) => {
+                    if (unlinkErr) return reject(unlinkErr);
+                    resolve(destPath);
+                });
             });
         });
     };
 
     try {
-        if (coverPhoto) await moveFile(coverPhoto[0]);
-        if (listingPhoto) await moveFile(listingPhoto[0]);
-        if (agencyAgreement) await moveFile(agencyAgreement[0]);
-        if (im) await moveFile(im[0]);
+        // Move files if they exist
+        const filesToMove = [
+            coverPhoto && coverPhoto[0],
+            listingPhoto && listingPhoto[0],
+            agencyAgreement && agencyAgreement[0],
+            im && im[0]
+        ].filter(Boolean);
+
+        const movePromises = filesToMove.map(file => moveFile(file, 'public/uploads'));
+        await Promise.all(movePromises);
 
         const newListing = new listingSchema({
             dealName: deal_name,
@@ -77,10 +87,10 @@ const addListing = async (req, res) => {
             adTitle: adTitle,
             webAd: webAd,
             status: status,
-            coverPhoto: coverPhoto !== undefined ? coverPhoto[0].filename : '',
-            agencyAgreement: agencyAgreement !== undefined ? agencyAgreement[0].filename : '',
-            im: im !== undefined ? im[0].filename : '',
-            listingPhoto: listingPhoto !== undefined ? listingPhoto[0].filename : ''
+            coverPhoto: coverPhoto ? coverPhoto[0].filename : '',
+            agencyAgreement: agencyAgreement ? agencyAgreement[0].filename : '',
+            im: im ? im[0].filename : '',
+            listingPhoto: listingPhoto ? listingPhoto[0].filename : ''
         });
 
         const savedListing = await newListing.save();
