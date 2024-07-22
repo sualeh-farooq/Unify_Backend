@@ -7,17 +7,17 @@ const listingSchema = require('../models/listing');
 const sellerSchema = require('../models/sellers')
 
 
+// Multer for Admin Media Storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'tmp'); 
+        cb(null, 'public/uploads/'); // Specify the upload directory
     },
     filename: function (req, file, cb) {
         const userId = req.cookies.userId || 'anonymous';
-        const uniqueSuffix = Date.now() + path.extname(file.originalname);
+        const uniqueSuffix = Date.now() + path.extname(file.originalname)
         cb(null, `${userId}-${uniqueSuffix}`);
     }
 });
-
 
 const upload = multer({ storage: storage });
 
@@ -37,69 +37,45 @@ const addListing = async (req, res) => {
         adTitle,
         status,
         webAd
-    } = req.body;
+    } = req.body
 
     const {
         coverPhoto,
-        listingPhoto,
-        agencyAgreement,
-        im
-    } = req.files;
-
-    // Move files from /tmp to your desired directory if needed
-    const moveFile = (file, targetDir) => {
-        return new Promise((resolve, reject) => {
-            const sourcePath = path.join('tmp', file.filename);
-            const destPath = path.join(process.cwd(), targetDir, file.filename);
-            fs.copyFile(sourcePath, destPath, (err) => {
-                if (err) return reject(err);
-                fs.unlink(sourcePath, (unlinkErr) => {
-                    if (unlinkErr) return reject(unlinkErr);
-                    resolve(destPath);
-                });
-            });
-        });
-    };
-
+        listingPhoto, agencyAgreement, im
+    } = req.files
+    const addListing = new listingSchema({
+        dealName: deal_name,
+        askingPrice: asking_price,
+        commision: commision,
+        marketingFunds: funds,
+        revenue: revenue,
+        ebitda: ebitda,
+        seller: seller,
+        location: location,
+        industry: industry,
+        broker: broker,
+        adTitle: adTitle,
+        webAd: webAd,
+        status: status,
+        coverPhoto: coverPhoto !== undefined ? coverPhoto[0].filename : '',
+        agencyAgreement: agencyAgreement !== undefined ? agencyAgreement[0].filename : '',
+        im: im !== undefined ? im[0].filename : '',
+        listingPhoto: listingPhoto !== undefined ? listingPhoto[0].filename : ''
+    })
     try {
-        // Move files if they exist
-        const filesToMove = [
-            coverPhoto && coverPhoto[0],
-            listingPhoto && listingPhoto[0],
-            agencyAgreement && agencyAgreement[0],
-            im && im[0]
-        ].filter(Boolean);
-
-        const movePromises = filesToMove.map(file => moveFile(file, 'public/uploads'));
-        await Promise.all(movePromises);
-
-        const newListing = new listingSchema({
-            dealName: deal_name,
-            askingPrice: asking_price,
-            commision: commision,
-            marketingFunds: funds,
-            revenue: revenue,
-            ebitda: ebitda,
-            seller: seller,
-            location: location,
-            industry: industry,
-            broker: broker,
-            adTitle: adTitle,
-            webAd: webAd,
-            status: status,
-            coverPhoto: coverPhoto ? coverPhoto[0].filename : '',
-            agencyAgreement: agencyAgreement ? agencyAgreement[0].filename : '',
-            im: im ? im[0].filename : '',
-            listingPhoto: listingPhoto ? listingPhoto[0].filename : ''
-        });
-
-        const savedListing = await newListing.save();
-        return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' });
+        addListing.save()
+            .then((data) => {
+                const savedListing = data
+                return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' });
+            })
     } catch (err) {
-        console.log(`Error ==> ${err}`);
-        return res.status(404).json({ message: `Error Occurred ==> ${err}` });
+        console.log(`Error ==> ${err}`)
+        return res.status(404).json({ message: `Error Occured ==> ${err} ` })
     }
+
+
 };
+
 
 const addBuyer = async (req, res) =>{
     console.log('hit')
