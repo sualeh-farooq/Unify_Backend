@@ -5,76 +5,87 @@ const IncomingForm = require('formidable')
 const mv = require('mv')
 const listingSchema = require('../models/listing');
 const sellerSchema = require('../models/sellers')
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
 
 
-// Multer for Admin Media Storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/'); // Specify the upload directory
-    },
-    filename: function (req, file, cb) {
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'uploads',
+      format: async (req, file) => path.extname(file.originalname).slice(1),
+      public_id: (req, file) => {
         const userId = req.cookies.userId || 'anonymous';
-        const uniqueSuffix = Date.now() + path.extname(file.originalname)
-        cb(null, `${userId}-${uniqueSuffix}`);
+        const uniqueSuffix = Date.now();
+        return `${userId}-${uniqueSuffix}`;
+      }
     }
-});
+  });
 
 const upload = multer({ storage: storage });
 
 // Add Listing
 const addListing = async (req, res) => {
     const {
-        deal_name,
-        asking_price,
-        commision,
-        funds,
-        revenue,
-        ebitda,
-        seller,
-        location,
-        industry,
-        broker,
-        adTitle,
-        status,
-        webAd
-    } = req.body
-
+      deal_name,
+      asking_price,
+      commision,
+      funds,
+      revenue,
+      ebitda,
+      seller,
+      location,
+      industry,
+      broker,
+      adTitle,
+      status,
+      webAd
+    } = req.body;
+  
     const {
-        coverPhoto,
-        listingPhoto, agencyAgreement, im
-    } = req.files
-    const addListing = new listingSchema({
-        dealName: deal_name,
-        askingPrice: asking_price,
-        commision: commision,
-        marketingFunds: funds,
-        revenue: revenue,
-        ebitda: ebitda,
-        seller: seller,
-        location: location,
-        industry: industry,
-        broker: broker,
-        adTitle: adTitle,
-        webAd: webAd,
-        status: status,
-        coverPhoto: coverPhoto !== undefined ? coverPhoto[0].filename : '',
-        agencyAgreement: agencyAgreement !== undefined ? agencyAgreement[0].filename : '',
-        im: im !== undefined ? im[0].filename : '',
-        listingPhoto: listingPhoto !== undefined ? listingPhoto[0].filename : ''
-    })
+      coverPhoto,
+      listingPhoto,
+      agencyAgreement,
+      im
+    } = req.files;
+  
+
+    const newListing = new listingSchema({
+      dealName: deal_name,
+      askingPrice: asking_price,
+      commision: commision,
+      marketingFunds: funds,
+      revenue: revenue,
+      ebitda: ebitda,
+      seller: seller,
+      location: location,
+      industry: industry,
+      broker: broker,
+      adTitle: adTitle,
+      webAd: webAd,
+      status: status,
+      coverPhoto: coverPhoto ? coverPhoto[0].path : '', 
+      agencyAgreement: agencyAgreement ? agencyAgreement[0].path : '', 
+      im: im ? im[0].path : '', 
+      listingPhoto: listingPhoto ? listingPhoto[0].path : '' 
+    });
+  
     try {
-        addListing.save()
-            .then((data) => {
-                const savedListing = data
-                return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' });
-            })
+      const savedListing = await newListing.save();
+      return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' , 
+        files: {
+            coverPhoto: coverPhoto ? coverPhoto[0].secure_url : '',
+            listingPhoto: listingPhoto ? listingPhoto[0].secure_url : '',
+            agencyAgreement: agencyAgreement ? agencyAgreement[0].secure_url : '',
+            im: im ? im[0].secure_url : ''
+          }
+
+       });
     } catch (err) {
-        console.log(`Error ==> ${err}`)
-        return res.status(404).json({ message: `Error Occured ==> ${err} ` })
+      console.log(`Error ==> ${err}`);
+      return res.status(404).json({ message: `Error Occurred ==> ${err}` });
     }
-
-
-};
+  };
 
 
 const addBuyer = async (req, res) =>{
