@@ -9,10 +9,9 @@ const sellerSchema = require('../models/sellers')
 
 
 
-// Configure Multer to use /tmp directory for temporary storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'tmp'); // Use /tmp directory
+        cb(null, '/tmp'); 
     },
     filename: function (req, file, cb) {
         const userId = req.cookies.userId || 'anonymous';
@@ -23,7 +22,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Add Listing
 const addListing = async (req, res) => {
     const {
         deal_name,
@@ -48,10 +46,9 @@ const addListing = async (req, res) => {
         im
     } = req.files;
 
-    // Move files from /tmp to your desired directory if needed
     const moveFile = (file, targetPath) => {
         return new Promise((resolve, reject) => {
-            const sourcePath = path.join('tmp', file.filename);
+            const sourcePath = path.join('/tmp', file.filename);
             const destPath = path.join('public/uploads/', file.filename);
             fs.rename(sourcePath, destPath, (err) => {
                 if (err) return reject(err);
@@ -61,7 +58,6 @@ const addListing = async (req, res) => {
     };
 
     try {
-        // Move files if they exist
         if (coverPhoto) await moveFile(coverPhoto[0]);
         if (listingPhoto) await moveFile(listingPhoto[0]);
         if (agencyAgreement) await moveFile(agencyAgreement[0]);
