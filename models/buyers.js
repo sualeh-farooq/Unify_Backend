@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
-const sellers = new Schema({
+const buyers = new Schema({
     name: {
         type: String,
         required: true
@@ -34,6 +34,6 @@ const sellers = new Schema({
     },
 })
 
-const sellerSchema = mongoose.model('sellers' , sellers)
+const buyerSchema = mongoose.model('buyers' , buyers)
 
-module.exports = sellerSchema
+module.exports = buyerSchema

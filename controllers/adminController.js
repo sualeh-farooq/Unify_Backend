@@ -7,90 +7,122 @@ const listingSchema = require('../models/listing');
 const sellerSchema = require('../models/sellers')
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../config/cloudinary');
+const buyerSchema = require('../models/buyers')
 
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-      folder: 'uploads',
-      format: async (req, file) => path.extname(file.originalname).slice(1),
-      public_id: (req, file) => {
-        const userId = req.cookies.userId || 'anonymous';
-        const uniqueSuffix = Date.now();
-        return `${userId}-${uniqueSuffix}`;
-      }
+        folder: 'uploads',
+        format: async (req, file) => path.extname(file.originalname).slice(1),
+        public_id: (req, file) => {
+            const userId = req.cookies.userId || 'anonymous';
+            const uniqueSuffix = Date.now();
+            return `${userId}-${uniqueSuffix}`;
+        }
     }
-  });
+});
 
 const upload = multer({ storage: storage });
 
 // Add Listing
 const addListing = async (req, res) => {
     const {
-      deal_name,
-      asking_price,
-      commision,
-      funds,
-      revenue,
-      ebitda,
-      seller,
-      location,
-      industry,
-      broker,
-      adTitle,
-      status,
-      webAd
+        deal_name,
+        asking_price,
+        commision,
+        funds,
+        revenue,
+        ebitda,
+        seller,
+        location,
+        industry,
+        broker,
+        adTitle,
+        status,
+        webAd
     } = req.body;
-  
+
     const {
-      coverPhoto,
-      listingPhoto,
-      agencyAgreement,
-      im
+        coverPhoto,
+        listingPhoto,
+        agencyAgreement,
+        im
     } = req.files;
-  
+
 
     const newListing = new listingSchema({
-      dealName: deal_name,
-      askingPrice: asking_price,
-      commision: commision,
-      marketingFunds: funds,
-      revenue: revenue,
-      ebitda: ebitda,
-      seller: seller,
-      location: location,
-      industry: industry,
-      broker: broker,
-      adTitle: adTitle,
-      webAd: webAd,
-      status: status,
-      coverPhoto: coverPhoto ? coverPhoto[0].path : '', 
-      agencyAgreement: agencyAgreement ? agencyAgreement[0].path : '', 
-      im: im ? im[0].path : '', 
-      listingPhoto: listingPhoto ? listingPhoto[0].path : '' 
+        dealName: deal_name,
+        askingPrice: asking_price,
+        commision: commision,
+        marketingFunds: funds,
+        revenue: revenue,
+        ebitda: ebitda,
+        seller: seller,
+        location: location,
+        industry: industry,
+        broker: broker,
+        adTitle: adTitle,
+        webAd: webAd,
+        status: status,
+        coverPhoto: coverPhoto ? coverPhoto[0].path : '',
+        agencyAgreement: agencyAgreement ? agencyAgreement[0].path : '',
+        im: im ? im[0].path : '',
+        listingPhoto: listingPhoto ? listingPhoto[0].path : ''
     });
-  
     try {
-      const savedListing = await newListing.save();
-      return res.status(200).json({ data: savedListing, message: 'Listing and image uploaded successfully' , 
-        files: {
-            coverPhoto: coverPhoto ? coverPhoto[0].secure_url : '',
-            listingPhoto: listingPhoto ? listingPhoto[0].secure_url : '',
-            agencyAgreement: agencyAgreement ? agencyAgreement[0].secure_url : '',
-            im: im ? im[0].secure_url : ''
-          }
+        const savedListing = await newListing.save();
+        return res.status(200).json({
+            data: savedListing, message: 'Listing and image uploaded successfully',
+            files: {
+                coverPhoto: coverPhoto ? coverPhoto[0].secure_url : '',
+                listingPhoto: listingPhoto ? listingPhoto[0].secure_url : '',
+                agencyAgreement: agencyAgreement ? agencyAgreement[0].secure_url : '',
+                im: im ? im[0].secure_url : ''
+            }
 
-       });
+        });
     } catch (err) {
-      console.log(`Error ==> ${err}`);
-      return res.status(404).json({ message: `Error Occurred ==> ${err}` });
+        console.log(`Error ==> ${err}`);
+        return res.status(404).json({ message: `Error Occurred ==> ${err}` });
     }
-  };
+};
 
 
-const addBuyer = async (req, res) =>{
-    console.log('hit')
-    return res.status(200).json({message: 'Add Buyer API Hit'})
+const addBuyer = async (req, res) => {
+    const {
+        name,
+        email,
+        phone,
+        interest,
+        budget,
+        buyer_type,
+        broker
+    } = req.body
+    const { agreement } = req.files
+    let buyerData = new buyerSchema({
+        name: name,
+        email: email,
+        phone: phone,
+        budget: budget,
+        interest: interest,
+        broker: broker,
+        agreement: agreement ? agreement[0].path : '',
+        buyerType: buyer_type
+    })
+    try {
+        const response = await buyerData.save()
+            .then((data) => {
+                let buyerData = data
+                return res.status(200).json({ message: 'Buyer Added Succesfully', data: buyerData })
+            }).catch((err) => {
+                return res.status(400).json({ message: 'Something went wrong', error: err })
+            })
+    } catch (err) {
+        return res.status(401).json({ message: 'Something went wrong', error: err })
+    }
+
+
 }
 
 
@@ -173,6 +205,21 @@ const getSellers = async (req, res) => {
 }
 
 
+const getBuyers = async (req, res) => {
+    try {
+        await buyerSchema.find()
+            .then((data) => {
+                let buyers = data
+                return res.status(200).json({ message: 'Buyers List Fetched Sucessfully', data: buyers })
+            }).catch((err) => {
+                return res.status(401).json({ message: 'Something went wrong while fetching buyers', error: err })
+            })
+    } catch (error) {
+        return res.status(401).json({ message: 'Something went wrong while fetching buyers', error: error })
+
+    }
+}
+
 const deleteListing = async (req, res) => {
     try {
         await sellerSchema.findByIdAndDelete({ _id: req.params.id })
@@ -189,4 +236,4 @@ const deleteListing = async (req, res) => {
         res.status(401).json({ message: 'Something Went Wrong', error: error })
     }
 }
-module.exports = { addListing, upload, addSeller, getSellers, getListings, deleteListing  , addBuyer};
+module.exports = { addListing, upload, addSeller, getSellers, getListings, deleteListing, addBuyer, getBuyers };
